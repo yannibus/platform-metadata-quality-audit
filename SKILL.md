@@ -1,11 +1,6 @@
 ---
 name: platform-metadata-quality-audit
 description: "Use this skill when users want to audit, review, or improve the quality of Salesforce object and field metadata. Trigger when users mention metadata quality, missing descriptions, metadata audit, documentation of objects/fields, enriching metadata, or when they provide one or more object API names and ask to check/improve their metadata. Also use when users say things like 'audit my metadata', 'check descriptions on Account', 'improve metadata quality for X object', 'document my fields'. Works with both standard and custom objects."
----
-
----
-name: platform-metadata-quality-audit
-description: "Use this skill when users want to audit, review, or improve the quality of Salesforce object and field metadata. Trigger when users mention metadata quality, missing descriptions, metadata audit, documentation of objects/fields, enriching metadata, or when they provide one or more object API names and ask to check/improve their metadata. Also use when users say things like 'audit my metadata', 'check descriptions on Account', 'improve metadata quality for X object', 'document my fields'. Works with both standard and custom objects."
 metadata:
   version: "1.0"
   minApiVersion: "60.0"
