@@ -1,17 +1,19 @@
 # platform-metadata-quality-audit
 
-An **Agentforce Vibes / Salesforce DX Einstein** skill that audits and improves the documentation quality of Salesforce **object and field metadata** — then deploys the approved changes via the Salesforce CLI.
+An agent skill (Claude Code, Agentforce Vibes, or any `SKILL.md`-compatible agent) that audits and improves the documentation quality of Salesforce **object and field metadata** — then deploys the approved changes via the Salesforce CLI.
 
-It reads object/field metadata, samples real records for context, classifies every description as `MISSING` / `POOR` / `ADEQUATE` / `GOOD`, and produces a reviewable Markdown report of proposed improvements. Nothing is deployed until you say so.
+It reads object/field metadata through the describe and Tooling APIs, measures field fill rates, samples real records for context, classifies every description as `MISSING` / `POOR` / `ADEQUATE` / `GOOD`, and produces a reviewable Markdown report plus a JSON proposals file. Nothing is deployed until you say so.
 
 ## What it does
 
 - **Audits** descriptions, help text, and labels on one or more objects (standard *and* custom).
-- **Samples** 5 real records per object to ground the proposed descriptions in actual usage.
+- **Measures** the fill rate of every field to spot unused fields and prioritize documentation.
+- **Samples** 5 real records per object (with personal data masked) to ground the proposed descriptions in actual usage.
+- **Skips** managed-package components (read-only) and never relabels standard objects or fields.
 - **Classifies** every attribute against explicit quality criteria (present / specific / business context / length).
 - **Proposes** enriched, business-contextual descriptions — using labels, not API names.
-- **Reports** everything to a local Markdown file you can edit before applying.
-- **Deploys** the approved changes with `sf project deploy start`, only after explicit confirmation.
+- **Reports** everything to a local Markdown file, with a JSON file that you edit before applying.
+- **Deploys** only the modified files with `sf project deploy start`, after explicit confirmation, then verifies every value.
 
 ### Attributes audited
 
@@ -35,13 +37,14 @@ Typical triggers: *"audit my metadata"*, *"check descriptions on Account"*, *"im
 
 ## Workflow
 
-1. **Retrieve** object + field metadata (`sf project retrieve start`).
-2. **Sample** records (`SELECT … ORDER BY LastModifiedDate DESC LIMIT 5`).
-3. **Analyze & propose** — classify each item, generate proposals for `MISSING` / `POOR`.
-4. **Generate report** at `./metadata-quality-report-<ObjectName>.md`.
-5. **Apply on approval** — re-read the (possibly edited) report, update the XML, deploy.
+0. **Org context**: reference language.
+1. **Read** metadata (`sf sobject describe` + Tooling `EntityDefinition` / `FieldDefinition`). No retrieve needed.
+2. **Measure & sample**: fill rates (`COUNT()`), 5 recent records with PII masked.
+3. **Analyze & propose**: classify each item and generate proposals for `MISSING` / `POOR`.
+4. **Generate** `./metadata-audit/<alias>/metadata-quality-report-<Object>.md` + `metadata-quality-proposals-<Object>.json`.
+5. **Apply on approval**: re-read the (possibly edited) JSON, retrieve fresh source, edit XML, deploy only modified files, verify.
 
-You stay in control: review the report, edit any proposal inline, then say **"go"** / **"apply"** to deploy — or **"regenerate"** to re-run.
+You stay in control: review the report, edit any proposal in the JSON file, then say **"go"** / **"apply"** to deploy — or **"regenerate"** to re-run.
 
 ## Repository structure
 
@@ -61,10 +64,11 @@ You stay in control: review the report, edit any proposal inline, then say **"go
 
 ## Notes
 
-- Detects the language of existing metadata and matches it (defaults to English).
-- Standard object/field descriptions are supported — retrieve, modify, deploy back.
+- Writes in the org's reference language by default. Descriptions are not translatable through the Metadata API; for label and help text translations, use a dedicated translation agent.
+- Standard object/field descriptions and help text are supported (validated with `--dry-run` on API 67.0). Only the modified files are deployed back.
+- Do not use `CustomField:<Object>.*` to retrieve fields: the wildcard returns nothing. `CustomObject:<Object>` returns all fields.
 - For objects with 100+ fields, custom fields and actually-populated fields are prioritized.
 
 ---
 
-*Skill authored for use with Agentforce Vibes / the Salesforce DX Einstein GPT extension.*
+*Version 1.1. See the version history in `SKILL.md`.*
