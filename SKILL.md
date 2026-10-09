@@ -2,7 +2,7 @@
 name: platform-metadata-quality-audit
 description: "Use this skill when users want to audit, review, or improve the quality of Salesforce object and field metadata. Trigger when users mention metadata quality, missing descriptions, metadata audit, documentation of objects/fields, enriching metadata, or when they provide one or more object API names and ask to check/improve their metadata. Also use when users say things like 'audit my metadata', 'check descriptions on Account', 'improve metadata quality for X object', 'document my fields'. Works with both standard and custom objects. Do not use for translations of labels/help text into other languages (use the sf-metadata-translator agent)."
 metadata:
-  version: "1.1"
+  version: "1.2"
   minApiVersion: "60.0"
 ---
 
@@ -58,6 +58,23 @@ sf data query --target-org <alias> --json --query "SELECT LanguageLocaleKey FROM
 ```
 
 - `LanguageLocaleKey` is the org's reference language. Write proposals in that language unless existing descriptions are clearly in another language, or the user asks otherwise.
+- **Check the running user's language** (the user the CLI is authenticated as, from `sf org display`):
+  ```bash
+  sf data query --target-org <alias> --json --query "SELECT LanguageLocaleKey FROM User WHERE Username = '<username>'" 2>/dev/null
+  ```
+  If it differs from the org's `LanguageLocaleKey`, **stop before Phase 1** and tell the user why:
+  - `sf sobject describe` returns labels (and possibly help text) **translated into the running user's language**, so the audit would read translations instead of the reference values;
+  - `sf project retrieve start` can also return translated values (observed: `inlineHelpText` in French for an `en_US` org). Redeploying such a file in Phase 5 would **overwrite the reference-language text** with the translation.
+
+  Offer two options and wait for the user's choice:
+  1. **(recommended)** temporarily switch the running user to the org language, then restore it at the end of the run, after explicit consent:
+     ```bash
+     sf data update record --sobject User --where "Username='<username>'" --values "LanguageLocaleKey=<org language>" --target-org <alias>
+     ```
+     Record the original value and restore it at the end, even if a later phase fails.
+  2. re-authenticate the CLI with another user whose language matches the org language.
+
+  Descriptions read through the Tooling API are not affected (they are not translatable), but labels and help text are. Never continue silently with a mismatch.
 - The CLI prints plugin warnings on stderr: always redirect `2>/dev/null` before parsing JSON, and check `.result.success` (not only `.status`).
 
 ### Phase 1 — Read metadata (no retrieve needed)
@@ -173,7 +190,7 @@ Invite the user to:
 
 ### Phase 5 — Apply Changes (on user "go")
 
-1. **Re-read the JSON file** (the user may have edited it). Keep only `apply: true` items with a non-empty `proposed`. Re-check lengths and drop any `MANAGED` item.
+1. **Re-check the running user's language** (Phase 0): it must still match the org language, otherwise stop. Then **re-read the JSON file** (the user may have edited it). Keep only `apply: true` items with a non-empty `proposed`. Re-check lengths and drop any `MANAGED` item.
 2. **Prepare a minimal SFDX project** in the working directory if none exists (`sfdx-project.json` with `packageDirectories: [{"path": "force-app", "default": true}]`).
 3. **Retrieve the current source** right before editing, into a directory **separate** from the package directory:
    ```bash
@@ -250,6 +267,7 @@ Write proposals in the org's reference language (`LanguageLocaleKey`) unless exi
 
 Before generating the report, verify:
 - [ ] The target org was explicitly named
+- [ ] The running user's language matches the org language (or the user chose to switch it temporarily)
 - [ ] All objects provided are accessible (describe succeeded)
 - [ ] Descriptions were read through the Tooling API
 - [ ] Fill rates were computed (or marked `n/a` with the reason)
@@ -261,6 +279,8 @@ Before generating the report, verify:
 
 Before deploying, verify:
 - [ ] User explicitly said "go", "apply", "deploy", or equivalent
+- [ ] The running user's language still matches the org language
+- [ ] If the user's language was switched temporarily, it is restored at the end of the run
 - [ ] The JSON file was re-read (user may have edited it)
 - [ ] Source was freshly retrieved, into a directory separate from the package directory
 - [ ] Only modified files are deployed
@@ -281,5 +301,6 @@ Before deploying, verify:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2 | 2026-10-09 | Running-user language check in Phase 0 and Phase 5: describe and retrieve return values in the user's language, so a mismatch with the org language could make the audit read translations and make the deploy overwrite reference-language text. Stops and offers a temporary, restored language switch |
 | 1.1 | 2026-10-09 | Read via describe + Tooling API (no retrieve for the audit); fill-rate measurement; PII masking in samples; JSON proposals file as the source of truth for deploy; label rules; managed-package handling; deploy only modified files; documented retrieve pitfalls (`CustomField:X.*` wildcard, output-dir); default language = org language; pointer to `sf-metadata-translator` for translations |
 | 1.0 | — | Initial version |

@@ -64,6 +64,7 @@ You stay in control: review the report, edit any proposal in the JSON file, then
 
 ## Notes
 
+- Checks that the CLI user's language matches the org's reference language before reading or deploying anything. Otherwise describe and retrieve return translated values, and a deploy could overwrite the reference text.
 - Writes in the org's reference language by default. Descriptions are not translatable through the Metadata API; for label and help text translations, use a dedicated translation agent.
 - Standard object/field descriptions and help text are supported (validated with `--dry-run` on API 67.0). Only the modified files are deployed back.
 - Do not use `CustomField:<Object>.*` to retrieve fields: the wildcard returns nothing. `CustomObject:<Object>` returns all fields.
@@ -71,4 +72,4 @@ You stay in control: review the report, edit any proposal in the JSON file, then
 
 ---
 
-*Version 1.1. See the version history in `SKILL.md`.*
+*Version 1.2. See the version history in `SKILL.md`.*
