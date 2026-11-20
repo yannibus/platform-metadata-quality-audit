@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <flexiPageRegions>
+        <itemInstances><componentInstance><componentName>metadataAuditApp</componentName><identifier>c_metadataAuditApp</identifier></componentInstance></itemInstances>
+        <name>main</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <masterLabel>Audit qualité des métadonnées</masterLabel>
+    <template><name>flexipage:defaultAppHomeTemplate</name></template>
+    <type>AppPage</type>
+</FlexiPage>

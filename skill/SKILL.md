@@ -2,7 +2,7 @@
 name: platform-metadata-quality-audit
 description: "Use this skill when users want to audit, review, or improve the quality of Salesforce object and field metadata. Trigger when users mention metadata quality, missing descriptions, metadata audit, documentation of objects/fields, enriching metadata, or when they provide one or more object API names and ask to check/improve their metadata. Also use when users say things like 'audit my metadata', 'check descriptions on Account', 'improve metadata quality for X object', 'document my fields'. Works with both standard and custom objects. Do not use for translations of labels/help text into other languages (use the sf-metadata-translator agent)."
 metadata:
-  version: "1.2"
+  version: "1.5"
   minApiVersion: "60.0"
 ---
 
@@ -37,6 +37,7 @@ This skill audits and improves the documentation quality of Salesforce object an
 
 - **Target org** (SF CLI alias). Required: never fall back to the default org silently. Ask if missing.
 - **One or more object API names**, standard or custom.
+- **Sample size** (optional): number of recent records to sample for business context, **from 1 to 100, default 5**. Ask the user if they want to change it. Clamp any value above 100 to 100 and below 1 to 1, and say so.
 
 **Examples:**
 - `Account`
@@ -110,12 +111,15 @@ The audit is read-only and does **not** require an SFDX project or a metadata re
    - Long text area, rich text, encrypted and some compound fields cannot be counted. Mark them `n/a`.
    - Use the percentage (`f / total`) in the report. It drives prioritization: a 0 % field may be obsolete, which is worth flagging rather than documenting.
    - If the object has more than 2 million records and the query times out, fall back to the sample only and say so.
-2. **Sample records** for business context:
+2. **Sample records** for business context (size = the sample size chosen in the input, default 5, max 100):
    ```bash
    sf data query --target-org <alias> --json 2>/dev/null \
-     --query "SELECT <fields> FROM <Object> ORDER BY LastModifiedDate DESC LIMIT 5"
+     --query "SELECT <fields> FROM <Object> ORDER BY LastModifiedDate DESC LIMIT <sampleSize>"
    ```
-   Use them to understand what the fields contain and the business patterns.
+   Use them to understand what the fields contain and the business patterns. A larger sample (up to 100) gives a more reliable picture of how fields are really used, at the cost of a bigger query:
+   - select only the fields being analyzed, in batches of at most 40 columns, rather than every field of the object;
+   - skip compound and encrypted fields in the sample;
+   - read the rows to understand the data but **do not copy them into the report**: show at most 3 masked example values per field.
 3. **Protect personal data.** Before writing sample values to the report, mask fields that look personal or sensitive:
    - types `email`, `phone`, encrypted fields;
    - names matching `(?i)(email|phone|mobile|ssn|iban|birth|address|salary|passport|tax)`.
@@ -130,7 +134,8 @@ The audit is read-only and does **not** require an SFDX project or a metadata re
 | Present | Empty / null | Has content |
 | Specific | "This field stores data" | "Stores the customer's preferred shipping address for order fulfillment" |
 | Business context | "Text field" | "Internal project code assigned by the PMO during intake" |
-| Length | > 200 chars or < 10 chars | 20–150 chars, concise and informative |
+| Length | > 300 chars or < 20 chars | 20–300 chars, structured (see below) |
+| Findable | Repeats the label | Names the business meaning, values, usage and synonyms that people and search agents use |
 
 **For each attribute, classify as:**
 - `MISSING`: empty.
@@ -141,13 +146,27 @@ The audit is read-only and does **not** require an SFDX project or a metadata re
 
 **Generate proposals for `MISSING` and `POOR`.** Optionally propose improvements for `ADEQUATE` items.
 
+**Two readers.** Proposals are read by (1) admins and end users and (2) AI search and analysis agents (Agentforce Coworker, other agents) that find fields by meaning. Write plain text, no markdown, with the business vocabulary people use in their questions. Never invent: omit a segment rather than guess.
+
+**Description format** — labelled segments, in this order, only those that apply, 300 characters maximum (20 minimum). If too long, drop from the end: *Also called*, *Filled by*, then shorten *Values*. Keep the twin sentence (below) in any case.
+- `What:` the business meaning, never a repetition of the label. For formulas, what they compute.
+- `Values:` up to 8 key picklist values, or the unit, format or range for numbers, currencies, dates, codes. Never state only the data type — omit the segment instead.
+- `Used for:` the questions, filters, reports or processes the field serves.
+- `Filled by:` who or what populates it (user, integration, automation, formula, system), only when type, fill rate or sample show it.
+- `Also called:` business synonyms people would search for, only when derivable from the label, API name, values or sample.
+- Example: `What: Sales stage of the opportunity in the pipeline. Values: Prospecting, Qualification, Proposal, Closed Won, Closed Lost. Used for: filtering open versus closed deals, forecast category, win-rate reports. Filled by: the opportunity owner.`
+
+**Help text** is for the person typing the value, not for agents: under 150 characters, imperative and plain — what to enter, with a format or example when useful. No technical term, no segment labels, never a repetition of the label.
+
 **Rules for writing proposals:**
 - Use field labels, not API names, in description text.
 - Reference business context gleaned from fill rates and record sampling.
 - For formula fields: describe what they compute and why.
 - For relationship fields: describe the business relationship, not just "Lookup to X".
+- For relationship and external-ID/key fields: add the segment `Join key: links to <related object label>.` after `What:`. This is what lets search assistants (Agentforce Coworker, agents) discover how objects connect.
+- **Twin fields**: before writing proposals, compare the fields of the object and flag *twins* — two fields with the same normalized label, or the same API-name base (`Industry` / `Industry__c`), where at least one is custom. The description of each twin **must name the other** and say how to choose ("Use this field when …; for …, use <other label> (<API name>) instead"). Base the distinction only on labels, types, descriptions and fill rates; if it cannot be inferred, write "Not to be confused with <other label> (<API name>): check which one your process fills" rather than inventing a business rule. Twins can be outside the batch you are analysing: always compare against the whole field list.
 - For picklist fields: mention key values if they reveal purpose.
-- Keep descriptions under 150 characters for fields and under 250 for objects (hard limits: 1000 for field descriptions, 510 for help text).
+- Keep field descriptions at 300 characters or less, help text under 150, and object descriptions under 250 (hard Salesforce limits: 1000 for field descriptions, 510 for help text).
 - Write in the language determined in Phase 0.
 
 **Rules for labels** (custom objects and custom fields only):
@@ -271,7 +290,8 @@ Before generating the report, verify:
 - [ ] All objects provided are accessible (describe succeeded)
 - [ ] Descriptions were read through the Tooling API
 - [ ] Fill rates were computed (or marked `n/a` with the reason)
-- [ ] Sample values in the report are masked or truncated
+- [ ] The sample size is between 1 and 100 (default 5) and was announced to the user
+- [ ] Sample values in the report are masked or truncated, and limited to 3 examples per field
 - [ ] Managed components are flagged `MANAGED`, with no proposal
 - [ ] No label proposal on standard objects or fields
 - [ ] Proposed descriptions are specific and business-contextual, and use labels, not API names
@@ -301,6 +321,9 @@ Before deploying, verify:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.5 | 2026-11-20 | Proposals written for two readers (humans and AI search/analysis agents such as Agentforce Coworker): labelled description segments (What / Values / Used for / Filled by / Also called / Join key), 300-character descriptions, short human help text |
+| 1.4 | 2026-11-19 | Join-key wording for relationship/external-ID fields; twin-field detection (standard/custom pairs) with a mandatory "use this one, not that one" sentence, so search assistants pick the right field |
+| 1.3 | 2026-11-19 | Configurable sample size, from 1 to 100 records (default 5, unchanged behavior); guidance for large samples (batches of 40 columns, at most 3 masked examples per field in the report) |
 | 1.2 | 2026-10-09 | Running-user language check in Phase 0 and Phase 5: describe and retrieve return values in the user's language, so a mismatch with the org language could make the audit read translations and make the deploy overwrite reference-language text. Stops and offers a temporary, restored language switch |
 | 1.1 | 2026-10-09 | Read via describe + Tooling API (no retrieve for the audit); fill-rate measurement; PII masking in samples; JSON proposals file as the source of truth for deploy; label rules; managed-package handling; deploy only modified files; documented retrieve pitfalls (`CustomField:X.*` wildcard, output-dir); default language = org language; pointer to `sf-metadata-translator` for translations |
 | 1.0 | — | Initial version |

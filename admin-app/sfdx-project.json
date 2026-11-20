@@ -1,0 +1,14 @@
+{
+  "packageDirectories": [
+    {
+      "path": "force-app",
+      "default": true,
+      "package": "metadata-quality-audit",
+      "versionName": "Bêta 1",
+      "versionNumber": "0.1.0.NEXT",
+      "versionDescription": "Audit de la qualité des métadonnées (champs) pour administrateurs"
+    }
+  ],
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "68.0"
+}

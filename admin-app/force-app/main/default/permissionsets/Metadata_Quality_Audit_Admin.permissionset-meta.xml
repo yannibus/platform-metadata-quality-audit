@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Metadata Quality Audit Admin</label>
+    <description>Donne accès au composant d'audit de la qualité des métadonnées. À compléter par « Metadata Quality Audit Credential » (installé par le script de configuration).</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <classAccesses><apexClass>MetadataAuditController</apexClass><enabled>true</enabled></classAccesses>
+    <tabSettings><tab>Metadata_Quality_Audit</tab><visibility>Visible</visibility></tabSettings>
+</PermissionSet>

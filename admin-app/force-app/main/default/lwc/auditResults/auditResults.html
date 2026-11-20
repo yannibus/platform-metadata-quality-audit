@@ -1,0 +1,31 @@
+<template>
+    <template for:each={groups} for:item="g">
+        <div key={g.field} class="field-group slds-m-bottom_small" data-id="group">
+            <div class="field-head slds-grid slds-wrap slds-grid_vertical-align-center">
+                <span class="slds-text-heading_small field-name">{g.fieldLabel}</span>
+                <span class="slds-text-color_weak slds-text-body_small slds-m-left_small">{g.field}</span>
+                <span class="slds-text-color_weak slds-text-body_small slds-col_bump-left">Rempli : {g.fillRateLabel}</span>
+            </div>
+            <template for:each={g.items} for:item="r">
+                <div key={r.id} class="attr-row" data-id="row">
+                    <div class="col-check">
+                        <lightning-input type="checkbox" variant="label-hidden" label="Appliquer" checked={r.apply} data-id={r.id} data-role="check" onchange={handleCheck}></lightning-input>
+                    </div>
+                    <div class="col-attr">
+                        <div class="attr-name slds-text-title_bold">
+                            <lightning-icon icon-name={r.iconName} size="x-small" class="slds-m-right_x-small"></lightning-icon>{r.attributeLabel}
+                        </div>
+                        <span class={r.badgeClass}>{r.statusLabel}</span>
+                    </div>
+                    <div class="col-current">
+                        <div class="slds-text-title slds-text-color_weak">Actuel</div>
+                        <div class="slds-text-color_weak">{r.currentLabel}</div>
+                    </div>
+                    <div class="col-proposed">
+                        <lightning-textarea variant="label-hidden" label="Texte proposé" value={r.proposed} max-length={r.maxLength} data-id={r.id} data-role="text" onchange={handleText}></lightning-textarea>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </template>
+</template>

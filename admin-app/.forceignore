@@ -1,0 +1,7 @@
+# Fichiers de test et d'outillage locaux : ne jamais déployer
+**/__tests__/**
+**/jsconfig.json
+**/.eslintrc.json
+package.json
+jest.config.js
+node_modules/

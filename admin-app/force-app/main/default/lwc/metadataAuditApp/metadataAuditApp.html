@@ -1,0 +1,86 @@
+<template>
+    <div class="slds-p-around_medium">
+        <div class="slds-m-bottom_medium">
+            <h1 class="slds-text-heading_large">Audit qualité des métadonnées</h1>
+            <p class="slds-text-color_weak">Choisissez un objet, lancez l'analyse, relisez et corrigez les propositions, puis appliquez-les.</p>
+        </div>
+
+        <template lwc:if={showSetup}>
+            <c-setup-wizard checks={setupChecks} loading={setupLoading} onrecheck={handleRecheck}></c-setup-wizard>
+        </template>
+
+        <template lwc:if={languageBlocked}>
+            <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_medium" role="alert" data-id="language-warning">
+                <span>Votre langue ({language.userLanguage}) diffère de celle de l'org ({language.orgLanguage}) : l'analyse reste possible, mais l'application des changements est bloquée pour ne pas écraser les textes de référence par des traductions.</span>
+            </div>
+        </template>
+
+        <div class="slds-box slds-theme_default slds-m-bottom_medium">
+            <div class="slds-grid slds-wrap slds-gutters slds-grid_vertical-align-end">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_6-of-12 object-picker">
+                    <lightning-input type="search" label="Objet" placeholder="Rechercher un objet (libellé ou nom d'API)" value={search}
+                        onchange={handleSearch} onfocus={handleFocus} data-id="object-search" autocomplete="off"></lightning-input>
+                    <template lwc:if={showList}>
+                        <ul class="object-list slds-box slds-box_xx-small slds-theme_default" role="listbox" data-id="object-list">
+                            <template for:each={filteredObjects} for:item="o">
+                                <li key={o.apiName} role="option" class="object-option slds-p-around_x-small" data-api={o.apiName} onclick={handlePick}>
+                                    {o.label} <span class="slds-text-color_weak">({o.apiName})</span>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                    <lightning-input type="number" label="Enregistrements d'échantillon (1 à 100)" min="1" max="100" value={sampleSize}
+                        onchange={handleSample} data-id="sample-size"></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                    <lightning-button variant="brand" label="Analyser" onclick={handleAnalyze} disabled={analyzeDisabled} data-id="analyze"></lightning-button>
+                </div>
+            </div>
+        </div>
+
+        <template lwc:if={busy}>
+            <div class="slds-m-bottom_medium" data-id="progress">
+                <p class="slds-m-bottom_xx-small">{busyLabel}</p>
+                <lightning-progress-bar value={progress} size="large"></lightning-progress-bar>
+            </div>
+        </template>
+
+        <template lwc:if={error}>
+            <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_medium" role="alert" data-id="error"><span>{error}</span></div>
+        </template>
+
+        <template lwc:if={hasHiddenFields}>
+            <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_medium" role="alert" data-id="hidden-fields">
+                <span>{hiddenFieldCount} champ(s) de cet objet ne sont pas visibles pour votre utilisateur et échappent à l'audit. Utilisez un profil avec « View All Fields » pour un audit complet.</span>
+            </div>
+        </template>
+
+        <template for:each={warnings} for:item="w">
+            <div key={w} class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small" role="alert"><span>{w}</span></div>
+        </template>
+
+        <c-apply-report report={report} items={appliedItems}></c-apply-report>
+
+        <template lwc:if={showResults}>
+            <div class="slds-box slds-theme_default">
+                <div class="results-header slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_small slds-p-vertical_x-small">
+                    <h2 class="slds-text-heading_small" data-id="results-title">{resultsTitle}</h2>
+                    <div>
+                        <lightning-button label="Tout cocher" onclick={handleCheckAll} class="slds-m-right_x-small" data-id="check-all"></lightning-button>
+                        <lightning-button label="Tout décocher" onclick={handleUncheckAll} class="slds-m-right_x-small" data-id="uncheck-all"></lightning-button>
+                        <lightning-button variant="brand" label={applyLabel} onclick={handleApply} disabled={applyDisabled} data-id="apply"></lightning-button>
+                    </div>
+                </div>
+                <template lwc:if={hasRows}>
+                    <c-audit-results rows={rows} onrowchange={handleRowChange}></c-audit-results>
+                </template>
+                <template lwc:else>
+                    <p data-id="no-proposal">Aucune proposition : les descriptions et aides analysées sont déjà de bonne qualité.</p>
+                </template>
+            </div>
+        </template>
+
+    </div>
+</template>
