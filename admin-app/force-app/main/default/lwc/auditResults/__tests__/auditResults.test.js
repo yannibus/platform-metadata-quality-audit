@@ -36,4 +36,17 @@ describe('c-audit-results', () => {
         box.dispatchEvent(new CustomEvent('change'));
         expect(handler.mock.calls[0][0].detail).toEqual({ id: 3, apply: false });
     });
+
+    it('shows the fill rate prominently with a bar, and none when unknown', async () => {
+        const el = createElement('c-audit-results', { is: AuditResults });
+        el.rows = rows;
+        document.body.appendChild(el);
+        await flush();
+        const groups = el.shadowRoot.querySelectorAll('[data-id="group"]');
+        expect(groups[0].querySelector('.fill-value').textContent).toBe('50 %');
+        expect(groups[0].querySelector('.fill-bar').style.width).toBe('50%');
+        expect(groups[0].querySelector('.fill-bar').className).toContain('fill-mid');
+        expect(groups[1].querySelector('.fill-value').textContent).toBe('n/a');
+        expect(groups[1].querySelector('.fill-bar')).toBeNull();
+    });
 });

@@ -31,7 +31,7 @@ public with sharing class FillRateService {
             }
         }
         for (List<String> part : chunk(measurable, COLUMNS_PER_QUERY)) {
-            List<SObject> rows = Database.query('SELECT ' + String.join(part, ',') + ' FROM ' + objectApiName + ' ORDER BY Id DESC LIMIT ' + sampleRows);
+            List<SObject> rows = Database.query('SELECT ' + String.join(part, ',') + ' FROM ' + objectApiName + ' ORDER BY ' + SampleMasker.recentOrder(dm) + ' LIMIT ' + sampleRows);
             if (rows.isEmpty()) { continue; }
             for (String name : part) {
                 Integer filled = 0;

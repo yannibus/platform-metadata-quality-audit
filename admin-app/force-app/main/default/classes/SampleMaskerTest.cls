@@ -43,4 +43,20 @@ private class SampleMaskerTest {
         System.assertEquals('Gold', SampleMasker.mask(fld('Rating', 'STRING'), 'Gold'));
         System.assertEquals('Senior', SampleMasker.mask(fld('Seniority__c', 'STRING'), 'Senior'));
     }
+
+    // L'échantillon doit être les N derniers enregistrements MIS À JOUR (ordre décroissant), jamais les plus anciens.
+    @IsTest static void sample_takesTheMostRecentlyUpdatedRecordsFirst() {
+        insert new List<Account>{ new Account(Name = 'A'), new Account(Name = 'B'), new Account(Name = 'C') };
+        List<AuditModels.FieldInfo> fs = new List<AuditModels.FieldInfo>();
+        for (AuditModels.FieldInfo f : MetadataReader.readObject('Account').fields) { if (f.apiName == 'Name') { fs.add(f); } }
+        List<Map<String, String>> rows = SampleMasker.sample('Account', fs, 1);
+        System.assertEquals(1, rows.size());
+        System.assertEquals('C', rows[0].get('Name'), 'en ascendant on obtiendrait A');
+    }
+
+    @IsTest static void recentOrder_isDescendingOnLastModifiedDate() {
+        Map<String, Schema.SObjectField> dm = Schema.getGlobalDescribe().get('Account').getDescribe().fields.getMap();
+        System.assertEquals('LastModifiedDate DESC, Id DESC', SampleMasker.recentOrder(dm));
+        System.assertEquals('Id DESC', SampleMasker.recentOrder(new Map<String, Schema.SObjectField>()));
+    }
 }

@@ -4,7 +4,15 @@
             <div class="field-head slds-grid slds-wrap slds-grid_vertical-align-center">
                 <span class="slds-text-heading_small field-name">{g.fieldLabel}</span>
                 <span class="slds-text-color_weak slds-text-body_small slds-m-left_small">{g.field}</span>
-                <span class="slds-text-color_weak slds-text-body_small slds-col_bump-left">Rempli : {g.fillRateLabel}</span>
+                <div class="fill slds-col_bump-left" data-id="fill">
+                    <div class="fill-figure">
+                        <span class="fill-value">{g.fillRateLabel}</span>
+                        <span class="fill-caption">renseigné</span>
+                    </div>
+                    <template lwc:if={g.fillKnown}>
+                        <div class="fill-track"><div class={g.fillClass} style={g.fillBarStyle}></div></div>
+                    </template>
+                </div>
             </div>
             <template for:each={g.items} for:item="r">
                 <div key={r.id} class="attr-row" data-id="row">

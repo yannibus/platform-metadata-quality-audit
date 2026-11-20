@@ -46,6 +46,7 @@ Apex ne sait pas écrire les descriptions de champs ; seule la Metadata API le p
 
 - Rien n'est écrit sans clic sur **Appliquer**.
 - Les valeurs sensibles de l'échantillon (e-mail, téléphone, IBAN, etc.) sont masquées avant tout envoi au modèle ; les autres sont tronquées à 60 caractères.
+- L'échantillon (1 à 100 enregistrements) et le taux de renseignement (les 2000 derniers) portent sur les enregistrements **les plus récemment mis à jour**, du plus récent au plus ancien.
 - Limites respectées : description 1000 caractères, aide 510, libellé de champ 40.
 - Après écriture, chaque valeur est **relue** et marquée « Vérifié » ou « Non vérifié ».
 

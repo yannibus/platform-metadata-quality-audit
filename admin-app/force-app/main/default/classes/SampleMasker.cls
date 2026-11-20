@@ -23,6 +23,12 @@ public with sharing class SampleMasker {
         return s.length() > 60 ? s.left(60) : s;
     }
 
+    // Ordre commun à l'échantillon et au taux de remplissage : les enregistrements les plus récemment mis à jour d'abord
+    // (Id DESC en départage, ou seul critère pour un objet sans LastModifiedDate).
+    public static String recentOrder(Map<String, Schema.SObjectField> fieldMap) {
+        return fieldMap.containsKey('LastModifiedDate') ? 'LastModifiedDate DESC, Id DESC' : 'Id DESC';
+    }
+
     public static List<Map<String, String>> sample(String objectApiName, List<AuditModels.FieldInfo> fields, Integer size) {
         List<AuditModels.FieldInfo> cols = new List<AuditModels.FieldInfo>();
         Map<String, Schema.SObjectField> dm = Schema.getGlobalDescribe().get(objectApiName).getDescribe().fields.getMap();
@@ -36,7 +42,7 @@ public with sharing class SampleMasker {
         List<String> names = new List<String>();
         for (AuditModels.FieldInfo f : cols) { names.add(f.apiName); }
         String soql = 'SELECT ' + String.join(names, ',') + ' FROM ' + objectApiName
-            + ' ORDER BY LastModifiedDate DESC LIMIT ' + clamp(size);
+            + ' ORDER BY ' + recentOrder(dm) + ' LIMIT ' + clamp(size);
         List<Map<String, String>> rows = new List<Map<String, String>>();
         for (SObject r : Database.query(soql)) {
             Map<String, String> row = new Map<String, String>();

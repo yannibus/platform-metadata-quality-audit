@@ -28,7 +28,17 @@ export default class AuditResults extends LightningElement {
         const byField = new Map();
         this.viewRows.forEach((r) => {
             if (!byField.has(r.field)) {
-                byField.set(r.field, { field: r.field, fieldLabel: r.fieldLabel, fillRateLabel: r.fillRateLabel, items: [] });
+                const known = r.fillRate !== null && r.fillRate !== undefined;
+                const pct = known ? Math.round(r.fillRate * 100) : 0;
+                byField.set(r.field, {
+                    field: r.field,
+                    fieldLabel: r.fieldLabel,
+                    fillRateLabel: r.fillRateLabel,
+                    fillKnown: known,
+                    fillBarStyle: 'width: ' + pct + '%',
+                    fillClass: 'fill-bar ' + (pct < 20 ? 'fill-low' : pct < 70 ? 'fill-mid' : 'fill-high'),
+                    items: []
+                });
             }
             byField.get(r.field).items.push(r);
         });
