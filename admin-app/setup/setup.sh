@@ -24,12 +24,15 @@ stage() { # $1 = dossier du modèle ; copie dans $WORK/<nom> avec les valeurs de
 }
 
 deploy() { # $1 = dossier préparé ; affiche les erreurs de déploiement au lieu de les masquer
-  local out
-  out="$(cd "$WORK/$1" && sf project deploy start --source-dir force-app --target-org "$ORG" --json 2>&1 || true)"
+  local out err
+  err="$WORK/$1.stderr"
+  # stdout seul pour le JSON : les avertissements du CLI (stderr) ne doivent pas le rendre illisible.
+  out="$(cd "$WORK/$1" && sf project deploy start --source-dir force-app --target-org "$ORG" --json 2>"$err" || true)"
   if [ "$(jq -r '.result.success // false' <<<"$out" 2>/dev/null || echo false)" != "true" ]; then
     echo "Échec du déploiement ($1) :" >&2
     jq -r '(.result.details.componentFailures // [])[] | "  - \(.fullName): \(.problem)"' <<<"$out" 2>/dev/null >&2 || echo "$out" >&2
     jq -r '.message // empty' <<<"$out" 2>/dev/null >&2 || true
+    cat "$err" >&2 || true
     exit 1
   fi
 }
@@ -62,7 +65,7 @@ cat <<TXT
   b) Setup → Auth Providers → New → type « Salesforce » :
        Name et URL Suffix      : Metadata_Audit_Self
        Consumer Key / Secret   : ceux de l'étape a)
-       Authorize Endpoint URL  : /services/oauth2/authorize
+       Authorize Endpoint URL  : $DOMAIN/services/oauth2/authorize
        Token Endpoint URL      : $DOMAIN/services/oauth2/token
        Default Scopes          : api refresh_token
        Use PKCE Extension      : cochée (l'app l'exige)
